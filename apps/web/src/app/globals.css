@@ -1,0 +1,263 @@
+@import "tailwindcss";
+:root {
+  --bg: #fff;
+  --panel: #fff;
+  --line: #e2ecf7;
+  --text: #1c2d49;
+  --muted: #71829b;
+  --accent: #1680ff;
+}
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+* {
+  box-sizing: border-box;
+}
+a {
+  text-decoration: none;
+}
+button,
+select {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+:focus-visible {
+  outline: 3px solid #81bcff;
+  outline-offset: 3px;
+}
+::selection {
+  background: #d9ecff;
+}
+table th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+table td {
+  vertical-align: middle;
+}
+tbody tr:hover {
+  background: #f7faff;
+}
+.public-container {
+  width: min(1160px, calc(100% - 48px));
+  margin-inline: auto;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.section-heading h2 {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1680ff;
+  font-size: 12px;
+  font-weight: 500;
+}
+.text-link:hover {
+  color: #0761cf;
+}
+.event-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 32%;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #f3f8fd;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.event-row:hover {
+  background: #ebf4ff;
+  border-color: #c7e1ff;
+}
+.discipline-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 22px 10px;
+  min-height: 126px;
+  text-align: center;
+  background: #f4f8fd;
+  border: 1px solid #e4effb;
+  border-radius: 8px;
+  transition:
+    transform 0.18s,
+    border-color 0.18s;
+}
+.discipline-tile:hover {
+  transform: translateY(-3px);
+  border-color: #8cc3ff;
+}
+.dot-pattern {
+  background-image: radial-gradient(#8fc6ff 1.2px, transparent 1.2px);
+  background-size: 10px 10px;
+}
+.hero-art {
+  display: grid;
+  place-items: center;
+  min-height: 230px;
+}
+@media (max-width: 767px) {
+  .public-container {
+    width: calc(100% - 32px);
+  }
+  .event-row {
+    grid-template-columns: 48px 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+  .event-venue {
+    grid-column: 2;
+    border: none !important;
+    padding-left: 0 !important;
+  }
+  .section-heading h2 {
+    font-size: 16px;
+  }
+}
+/* Transform/opacity animations keep layout stable and need no JS library. */
+@keyframes enter-page {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes enter-dialog {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes float-art {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+main > div,
+main > section {
+  animation: enter-page 0.38s ease-out both;
+}
+main > section:nth-child(2) {
+  animation-delay: 0.06s;
+}
+main > section:nth-child(3) {
+  animation-delay: 0.12s;
+}
+main > section:nth-child(4) {
+  animation-delay: 0.18s;
+}
+dialog[open] {
+  animation: enter-dialog 0.22s ease-out;
+}
+dialog[open]::backdrop {
+  animation: fade-in 0.22s ease-out;
+}
+.hero-art svg {
+  animation: float-art 5s ease-in-out 2;
+}
+.ui-card {
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+a .ui-card:hover {
+  border-color: #a4cfff;
+  box-shadow: 0 5px 18px #1680ff10;
+}
+.ui-button {
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+}
+.ui-button:enabled:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px #1680ff18;
+}
+.ui-button:enabled:active {
+  transform: translateY(0) scale(0.98);
+}
+.event-row {
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+.event-row:hover {
+  transform: translateX(3px);
+}
+input,
+textarea,
+select {
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+  accent-color: #1680ff;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px #1680ff10;
+}
+@media (hover: none) {
+  .event-row:hover,
+  .discipline-tile:hover,
+  .ui-button:enabled:hover {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

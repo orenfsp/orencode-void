@@ -1,0 +1,790 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleCode {
+  FEDERATION
+  ATHLETE
+  COACH
+  JUDGE
+  MINISTRY
+}
+
+enum AthleteStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DISQUALIFIED
+}
+
+enum OrganizationType {
+  SPORTS_SCHOOL
+  CLUB
+  UNIVERSITY
+  FEDERATION
+  OTHER
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CoachAthleteStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
+enum CompetitionFormat {
+  IN_PERSON
+  ONLINE
+  HYBRID
+}
+
+enum CompetitionLevel {
+  REGIONAL
+  INTERREGIONAL
+  NATIONAL
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CalendarPlanType {
+  REGIONAL
+  INTERREGIONAL
+  FEDERAL
+}
+
+enum RatingBand {
+  RUSSIA_CHAMPIONSHIP
+  RUSSIA_YOUTH
+  INTERREGIONAL
+  REGIONAL
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ResultStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ProtocolStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum RankApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum JudgeCategoryApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum TeamMemberSource {
+  RATING
+  MANUAL
+}
+
+enum ConsentSubjectType {
+  USER
+  ATHLETE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  lastName     String
+  firstName    String
+  middleName   String?
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  roles                         UserRole[]
+  sessions                      Session[]
+  athlete                       Athlete?
+  coach                         Coach?
+  judge                         Judge?
+  consents                      Consent[]                    @relation("ConsentUser")
+  grantedConsents               Consent[]                    @relation("ConsentGrantedBy")
+  loginAttempts                 LoginAttempt[]
+  createdCompetitions           Competition[]                @relation("CompetitionCreator")
+  submittedApplications         CompetitionApplication[]     @relation("ApplicationSubmitter")
+  reviewedApplications          CompetitionApplication[]     @relation("ApplicationReviewer")
+  applicationStatusChanges      ApplicationStatusHistory[]
+  assignedJudges                JudgeAssignment[]            @relation("JudgeAssignedBy")
+  publishedProtocols            CompetitionProtocol[]
+  createdResults                CompetitionResult[]          @relation("ResultCreatedBy")
+  updatedResults                CompetitionResult[]          @relation("ResultUpdatedBy")
+  submittedRankApplications     RankApplication[]            @relation("RankSubmittedBy")
+  reviewedRankApplications      RankApplication[]            @relation("RankReviewedBy")
+  assignedRanks                 SportsRank[]
+  submittedJudgeCategoryApps    JudgeCategoryApplication[]   @relation("JudgeCatSubmittedBy")
+  reviewedJudgeCategoryApps     JudgeCategoryApplication[]   @relation("JudgeCatReviewedBy")
+  assignedCategories            JudgeCategory[]
+  notifications                 Notification[]
+  auditLogs                     AuditLog[]
+  nationalTeamChanges           NationalTeamMemberHistory[]
+  createdTeams                  NationalTeam[]
+  certificates                  ParticipationCertificate[]
+  coachAthleteStatusChanges     CoachAthleteStatusHistory[]
+  disqualifications             Disqualification[]
+  telegramLink                  TelegramLink?
+
+  @@index([lastName, firstName])
+}
+
+model Role {
+  id    String   @id @default(uuid())
+  code  RoleCode @unique
+  name  String
+  users UserRole[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model Session {
+  id             String   @id @default(uuid())
+  userId         String
+  tokenHash      String   @unique
+  activeRoleCode RoleCode
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  ip             String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  userId    String?
+  email     String
+  success   Boolean
+  ip        String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+}
+
+model Consent {
+  id                   String             @id @default(uuid())
+  subjectType          ConsentSubjectType
+  userId               String?
+  athleteId            String?
+  consentType          String
+  version              String
+  grantedAt            DateTime           @default(now())
+  grantedByUserId      String?
+  representativeName   String?
+  representativeRelation String?
+  user                 User?              @relation("ConsentUser", fields: [userId], references: [id], onDelete: SetNull)
+  athlete              Athlete?           @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+  grantedBy            User?              @relation("ConsentGrantedBy", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([athleteId])
+}
+
+model Organization {
+  id           String             @id @default(uuid())
+  name         String
+  type         OrganizationType
+  municipality String
+  address      String?
+  phone        String?
+  email        String?
+  status       OrganizationStatus @default(ACTIVE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  athletes     Athlete[]
+  coaches      Coach[]
+
+  @@index([municipality])
+  @@index([status])
+}
+
+model Discipline {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  athleteLinks     AthleteDiscipline[]
+  coachLinks       CoachDiscipline[]
+  competitions     Competition[]
+  coachAthletes    CoachAthlete[]
+  seasonRatings    AthleteSeasonRating[]
+  nationalTeams    NationalTeam[]
+}
+
+model AgeGroup {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  minAge      Int?
+  maxAge      Int?
+  competitions Competition[]
+  nationalTeams NationalTeam[]
+}
+
+model CompetitionType {
+  id           String        @id @default(uuid())
+  code         String        @unique
+  name         String
+  competitions Competition[]
+}
+
+model Athlete {
+  id              String        @id @default(uuid())
+  userId          String?       @unique
+  lastName        String
+  firstName       String
+  middleName      String?
+  birthDate       DateTime
+  municipality    String
+  organizationId  String?
+  startedYear     Int
+  status          AthleteStatus @default(ACTIVE)
+  guardianName    String?
+  guardianPhone   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  disciplines     AthleteDiscipline[]
+  coaches         CoachAthlete[]
+  applications    CompetitionApplication[]
+  results         CompetitionResult[]
+  ranks           SportsRank[]
+  rankApplications RankApplication[]
+  consents        Consent[]
+  antiDoping      AntiDopingRecord[]
+  disqualifications Disqualification[]
+  seasonRatings   AthleteSeasonRating[]
+  teamMemberships NationalTeamMember[]
+  certificates    ParticipationCertificate[]
+
+  @@index([lastName, firstName])
+  @@index([municipality])
+  @@index([organizationId])
+  @@index([status])
+  @@index([birthDate])
+}
+
+model AthleteDiscipline {
+  id           String     @id @default(uuid())
+  athleteId    String
+  disciplineId String
+  startedAt    DateTime?  @default(now())
+  athlete      Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Restrict)
+
+  @@unique([athleteId, disciplineId])
+}
+
+model AntiDopingRecord {
+  id                 String   @id @default(uuid())
+  athleteId          String
+  courseName         String
+  completedAt        DateTime
+  certificateNumber  String?
+  athlete            Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([athleteId])
+}
+
+model Disqualification {
+  id          String    @id @default(uuid())
+  athleteId   String
+  reason      String
+  startsAt    DateTime
+  endsAt      DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  athlete     Athlete   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id])
+
+  @@index([athleteId, startsAt, endsAt])
+}
+
+model Coach {
+  id             String        @id @default(uuid())
+  userId         String        @unique
+  lastName       String
+  firstName      String
+  middleName     String?
+  organizationId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  disciplines    CoachDiscipline[]
+  athletes       CoachAthlete[]
+
+  @@index([lastName, firstName])
+}
+
+model CoachDiscipline {
+  id           String     @id @default(uuid())
+  coachId      String
+  disciplineId String
+  coach        Coach      @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Restrict)
+
+  @@unique([coachId, disciplineId])
+}
+
+model CoachAthlete {
+  id           String             @id @default(uuid())
+  coachId      String
+  athleteId    String
+  disciplineId String
+  status       CoachAthleteStatus @default(PENDING)
+  createdAt    DateTime           @default(now())
+  confirmedAt  DateTime?
+  endedAt      DateTime?
+  coach        Coach              @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  athlete      Athlete            @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  discipline   Discipline         @relation(fields: [disciplineId], references: [id], onDelete: Restrict)
+  history      CoachAthleteStatusHistory[]
+
+  @@unique([coachId, athleteId, disciplineId])
+  @@index([athleteId, status])
+  @@index([coachId, status])
+}
+
+model CoachAthleteStatusHistory {
+  id             String             @id @default(uuid())
+  coachAthleteId String
+  fromStatus     CoachAthleteStatus?
+  toStatus       CoachAthleteStatus
+  changedById    String
+  comment        String?
+  createdAt      DateTime           @default(now())
+  coachAthlete   CoachAthlete       @relation(fields: [coachAthleteId], references: [id], onDelete: Cascade)
+  changedBy      User               @relation(fields: [changedById], references: [id])
+
+  @@index([coachAthleteId])
+}
+
+model Judge {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  lastName   String
+  firstName  String
+  middleName String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories JudgeCategory[]
+  categoryApplications JudgeCategoryApplication[]
+  assignments JudgeAssignment[]
+}
+
+model JudgeCategory {
+  id           String   @id @default(uuid())
+  judgeId      String
+  categoryCode String
+  assignedAt   DateTime
+  expiresAt    DateTime
+  orderNumber  String?
+  assignedById String?
+  createdAt    DateTime @default(now())
+  judge        Judge    @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  assignedBy   User?    @relation(fields: [assignedById], references: [id])
+
+  @@index([judgeId, expiresAt])
+}
+
+model JudgeCategoryApplication {
+  id               String                         @id @default(uuid())
+  judgeId          String
+  submittedById    String
+  requestedCategory String
+  status           JudgeCategoryApplicationStatus @default(PENDING)
+  comment          String?
+  reviewedById     String?
+  submittedAt      DateTime                       @default(now())
+  reviewedAt       DateTime?
+  judge            Judge                          @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  submittedBy      User                           @relation("JudgeCatSubmittedBy", fields: [submittedById], references: [id])
+  reviewedBy       User?                          @relation("JudgeCatReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status])
+  @@index([judgeId])
+}
+
+model Competition {
+  id                   String             @id @default(uuid())
+  name                 String
+  disciplineId         String
+  typeId               String
+  level                CompetitionLevel
+  format               CompetitionFormat
+  ageGroupId           String
+  startsAt             DateTime
+  endsAt               DateTime
+  venue                String
+  description          String?
+  regulationUrl        String?
+  publicationStatus    PublicationStatus  @default(DRAFT)
+  applicationsOpenAt   DateTime
+  applicationsCloseAt  DateTime
+  calendarPlanType     CalendarPlanType
+  calendarPlanNumber   String?
+  ratingBand           RatingBand
+  season               Int
+  createdById          String
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  discipline           Discipline         @relation(fields: [disciplineId], references: [id])
+  type                 CompetitionType    @relation(fields: [typeId], references: [id])
+  ageGroup             AgeGroup           @relation(fields: [ageGroupId], references: [id])
+  createdBy            User               @relation("CompetitionCreator", fields: [createdById], references: [id])
+  applications         CompetitionApplication[]
+  results              CompetitionResult[]
+  protocol             CompetitionProtocol?
+  judgeAssignments     JudgeAssignment[]
+  ranks                SportsRank[]
+  rankApplications     RankApplication[]
+  ratingEntries        AthleteRatingEntry[]
+  certificates         ParticipationCertificate[]
+
+  @@index([disciplineId])
+  @@index([startsAt])
+  @@index([publicationStatus])
+  @@index([season])
+  @@index([applicationsCloseAt])
+}
+
+model CompetitionApplication {
+  id            String            @id @default(uuid())
+  competitionId String
+  athleteId     String
+  submittedById String
+  status        ApplicationStatus @default(PENDING)
+  rejectionReason String?
+  reviewedById  String?
+  submittedAt   DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  competition   Competition       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athlete       Athlete           @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  submittedBy   User              @relation("ApplicationSubmitter", fields: [submittedById], references: [id])
+  reviewedBy    User?             @relation("ApplicationReviewer", fields: [reviewedById], references: [id])
+  history       ApplicationStatusHistory[]
+  result        CompetitionResult?
+
+  @@index([competitionId, status])
+  @@index([athleteId])
+  @@index([status])
+}
+
+model ApplicationStatusHistory {
+  id            String            @id @default(uuid())
+  applicationId String
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  changedById   String
+  comment       String?
+  createdAt     DateTime          @default(now())
+  application   CompetitionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  changedBy     User              @relation(fields: [changedById], references: [id])
+
+  @@index([applicationId])
+}
+
+model JudgeAssignment {
+  id            String   @id @default(uuid())
+  judgeId       String
+  competitionId String
+  position      String
+  assignedById  String
+  assignedAt    DateTime @default(now())
+  endedAt       DateTime?
+  judge         Judge    @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  assignedBy    User     @relation("JudgeAssignedBy", fields: [assignedById], references: [id])
+
+  @@index([competitionId])
+  @@index([judgeId])
+}
+
+model CompetitionResult {
+  id            String       @id @default(uuid())
+  competitionId String
+  athleteId     String
+  applicationId String       @unique
+  place         Int
+  score         Decimal      @db.Decimal(12, 3)
+  extraMetrics  Json?
+  status        ResultStatus @default(DRAFT)
+  createdById   String
+  updatedById   String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  competition   Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  athlete       Athlete      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  application   CompetitionApplication @relation(fields: [applicationId], references: [id])
+  createdBy     User         @relation("ResultCreatedBy", fields: [createdById], references: [id])
+  updatedBy     User         @relation("ResultUpdatedBy", fields: [updatedById], references: [id])
+  ranks         SportsRank[]
+  rankApplications RankApplication[]
+  ratingEntries AthleteRatingEntry[]
+  certificates  ParticipationCertificate[]
+
+  @@unique([competitionId, athleteId])
+  @@index([competitionId, place])
+  @@index([athleteId, status])
+}
+
+model CompetitionProtocol {
+  id            String         @id @default(uuid())
+  competitionId String         @unique
+  number        String
+  status        ProtocolStatus @default(DRAFT)
+  publishedAt   DateTime?
+  publishedById String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  competition   Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  publishedBy   User?          @relation(fields: [publishedById], references: [id])
+}
+
+model SportsRank {
+  id            String    @id @default(uuid())
+  athleteId     String
+  rankType      String
+  assignedAt    DateTime
+  expiresAt     DateTime
+  orderNumber   String?
+  competitionId String?
+  resultId      String?
+  assignedById  String
+  createdAt     DateTime  @default(now())
+  athlete       Athlete   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  competition   Competition? @relation(fields: [competitionId], references: [id])
+  result        CompetitionResult? @relation(fields: [resultId], references: [id])
+  assignedBy    User      @relation(fields: [assignedById], references: [id])
+
+  @@index([athleteId, expiresAt])
+  @@index([rankType])
+}
+
+model RankRequirement {
+  id          String   @id @default(uuid())
+  rankType    String
+  description String
+  sourceNote  String
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([rankType])
+}
+
+model RankApplication {
+  id            String                @id @default(uuid())
+  athleteId     String
+  submittedById String
+  rankType      String
+  competitionId String?
+  resultId      String?
+  status        RankApplicationStatus @default(PENDING)
+  comment       String?
+  reviewedById  String?
+  submittedAt   DateTime              @default(now())
+  reviewedAt    DateTime?
+  athlete       Athlete               @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  submittedBy   User                  @relation("RankSubmittedBy", fields: [submittedById], references: [id])
+  reviewedBy    User?                 @relation("RankReviewedBy", fields: [reviewedById], references: [id])
+  competition   Competition?          @relation(fields: [competitionId], references: [id])
+  result        CompetitionResult?    @relation(fields: [resultId], references: [id])
+
+  @@index([status])
+  @@index([athleteId])
+}
+
+model RatingRule {
+  id        String     @id @default(uuid())
+  season    Int
+  band      RatingBand
+  place     Int
+  points    Int
+  updatedAt DateTime   @updatedAt
+  createdAt DateTime   @default(now())
+
+  @@unique([season, band, place])
+}
+
+model AthleteSeasonRating {
+  id               String   @id @default(uuid())
+  athleteId        String
+  disciplineId     String
+  season           Int
+  totalPoints      Decimal  @db.Decimal(12, 3)
+  stabilityApplied Boolean  @default(false)
+  prizeCount       Int      @default(0)
+  calculatedAt     DateTime @default(now())
+  athlete          Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  discipline       Discipline @relation(fields: [disciplineId], references: [id])
+  entries          AthleteRatingEntry[]
+
+  @@unique([athleteId, disciplineId, season])
+  @@index([disciplineId, season, totalPoints])
+}
+
+model AthleteRatingEntry {
+  id             String              @id @default(uuid())
+  seasonRatingId String
+  competitionId  String
+  resultId       String
+  basePoints     Int
+  coefficient    Decimal             @db.Decimal(6, 3)
+  finalPoints    Decimal             @db.Decimal(12, 3)
+  seasonRating   AthleteSeasonRating @relation(fields: [seasonRatingId], references: [id], onDelete: Cascade)
+  competition    Competition         @relation(fields: [competitionId], references: [id])
+  result         CompetitionResult   @relation(fields: [resultId], references: [id])
+
+  @@unique([seasonRatingId, competitionId])
+}
+
+model NationalTeam {
+  id           String    @id @default(uuid())
+  season       Int
+  disciplineId String
+  ageGroupId   String
+  title        String
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  discipline   Discipline @relation(fields: [disciplineId], references: [id])
+  ageGroup     AgeGroup   @relation(fields: [ageGroupId], references: [id])
+  createdBy    User       @relation(fields: [createdById], references: [id])
+  members      NationalTeamMember[]
+  history      NationalTeamMemberHistory[]
+
+  @@unique([season, disciplineId, ageGroupId])
+}
+
+model NationalTeamMember {
+  id        String           @id @default(uuid())
+  teamId    String
+  athleteId String
+  source    TeamMemberSource
+  note      String?
+  addedAt   DateTime         @default(now())
+  team      NationalTeam     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  athlete   Athlete          @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, athleteId])
+}
+
+model NationalTeamMemberHistory {
+  id        String   @id @default(uuid())
+  teamId    String
+  athleteId String?
+  action    String
+  payload   Json?
+  userId    String
+  createdAt DateTime @default(now())
+  team      NationalTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id             String    @id @default(uuid())
+  userId         String
+  type           String
+  title          String
+  body           String
+  payload        Json?
+  readAt         DateTime?
+  telegramSentAt DateTime?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model TelegramLink {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  chatId     String   @unique
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  changes    Json?
+  context    Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model ParticipationCertificate {
+  id                 String   @id @default(uuid())
+  verificationToken  String   @unique
+  number             String   @unique
+  athleteId          String
+  competitionId      String
+  resultId           String?
+  issuedById         String
+  issuedAt           DateTime @default(now())
+  athlete            Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  competition        Competition @relation(fields: [competitionId], references: [id])
+  result             CompetitionResult? @relation(fields: [resultId], references: [id])
+  issuedBy           User     @relation(fields: [issuedById], references: [id])
+
+  @@index([athleteId])
+}

@@ -1,0 +1,40 @@
+{
+  "name": "fsp-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build:shared && prisma generate",
+    "build:shared": "npm run build -w @fsp/shared",
+    "dev": "npm run build:shared && node scripts/dev.mjs",
+    "dev:api": "npm run build:shared && npm run start:dev -w @fsp/api",
+    "dev:web": "npm run build:shared && npm run dev -w @fsp/web",
+    "build": "npm run build:shared && npm run build -w @fsp/api && npm run build -w @fsp/web",
+    "test": "npm run test -w @fsp/api",
+    "test:integration": "npm run build:shared && npm run build -w @fsp/api && node scripts/integration.mjs",
+    "typecheck": "tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "db:setup": "prisma migrate deploy && tsx prisma/seed.ts",
+    "start": "node scripts/start.mjs",
+    "compact": "node scripts/compact.mjs"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10",
+    "prisma": "^6.16.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "bcryptjs": "^3.0.2"
+  }
+}

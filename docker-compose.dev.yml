@@ -1,0 +1,5 @@
+# Only needed when running Node.js applications on the host.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
