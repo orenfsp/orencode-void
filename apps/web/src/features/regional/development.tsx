@@ -1,0 +1,14 @@
+"use client";
+import { useState } from 'react';
+import Link from 'next/link';
+import { useApi } from '@/hooks/use-api';
+import { useUser } from '@/components/shell';
+import { DataState } from '@/components/data-state';
+import { Card, Field, Input } from '@/components/ui';
+import { ResourceForm } from './workspace';
+type Evidence={id:string;title:string;url:string;indicator:string};
+type Data={year:number;trainingAthletes:number;sources:Record<string,string>;evidence:Evidence[];organizations:Array<{id:string;name:string;license:string|null;programs:string|null}>;competitions:Array<{id:string;name:string;level:string;calendarPlanType:string;calendarPlanNumber:string|null}>};
+export function DevelopmentDetails(){
+  const [year,setYear]=useState(new Date().getFullYear());const state=useApi<Data>(`/regional/development/${year}`);const staff=useUser()?.activeRole==='FEDERATION';
+  return <section className="mt-6 space-y-4"><h2 className="text-xl font-semibold">Источники и подтверждения показателей</h2><Field label="Отчётный год"><Input type="number" min={2000} max={2200} value={year} onChange={e=>setYear(Number(e.target.value))}/></Field><DataState {...state} retry={state.reload}/>{state.data&&<><Card><h3 className="font-semibold">Спортивная подготовка</h3><p>Уникальных спортсменов в учебных группах за год: {state.data.trainingAthletes}</p><p className="text-sm text-slate-500">{state.data.sources.trainingAthletes}</p>{state.data.organizations.map(o=><div className="mt-3" key={o.id}><p>{o.name}</p><p>Лицензия: {o.license??'не указана'}</p><p className="whitespace-pre-wrap">{o.programs}</p></div>)}</Card><Card><h3 className="font-semibold">Проведённые официальные соревнования</h3><p className="mb-3 text-sm text-slate-500">{state.data.sources.competitions}</p>{state.data.competitions.map(c=><p className="my-2" key={c.id}><Link className="text-link" href={`/competitions/${c.id}`}>{c.name}</Link> · {c.level} · план {c.calendarPlanType}, № {c.calendarPlanNumber??'не указан'}</p>)}{!state.data.competitions.length&&<p>В выбранном году нет завершённых соревнований с опубликованным протоколом.</p>}</Card><Card><h3 className="font-semibold">Подтверждающие документы</h3>{state.data.evidence.map(e=><p key={e.id}><a className="text-link" href={e.url} target="_blank" rel="noreferrer">{e.title}</a> · {e.indicator}</p>)}{!state.data.evidence.length&&<p>Подтверждения ещё не прикреплены.</p>}</Card></>}{staff&&<ResourceForm title="Прикрепить подтверждение показателя" path="/regional/development/evidence" defaults={{year}} done={state.reload} fields={[{name:'indicator',label:'Показатель',options:[{value:'HEADCOUNT',label:'Численность'},{value:'ORGANIZATIONS',label:'Организации'},{value:'COMPETITIONS',label:'Соревнования'}]},{name:'title',label:'Название документа'},{name:'url',label:'Ссылка HTTPS на документ',type:'url'}]}/>}</section>;
+}

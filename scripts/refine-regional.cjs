@@ -1,0 +1,12 @@
+const fs=require('fs');const edit=(p,f)=>fs.writeFileSync(p,f(fs.readFileSync(p,'utf8')));
+edit('package.json',s=>{const j=JSON.parse(s);j.scripts['demo:regional']='tsx prisma/seed-regional.ts';j.scripts['test:regional']='npm run build:shared && npm run build -w @fsp/api && node scripts/regional-integration.mjs';return JSON.stringify(j,null,2)+'\n';});
+edit('apps/api/src/competitions/competitions.service.ts',s=>s.replace('    // Места пересчитываются',`    const technicalLossIds = new Set(existing.filter(r => (r.extraMetrics as {technicalLoss?:boolean}|null)?.technicalLoss).map(r => r.athleteId));
+    // Места пересчитываются`).replace('[...scores.entries()].map(([id, score]) => ({ id, score }))','[...scores.entries()].filter(([id]) => !technicalLossIds.has(id)).map(([id, score]) => ({ id, score }))').replaceAll('places.get(item.athleteId) ?? 0','places.get(item.athleteId) ?? scores.size + 1').replace('places.get(item.athleteId) ?? item.place','places.get(item.athleteId) ?? scores.size + 1'));
+edit('apps/web/src/features/regional/workspace.tsx',s=>s.replace("    {section==='training'", "    {section==='scenarios'&&<Scenarios staff={staff} coach={coach}/>}\n    {section==='training'")+`
+function Scenarios({staff,coach}:{staff:boolean;coach:boolean}){
+ const list=useApi<Row[]>('/regional/scenarios');
+ return <><PageTitle title="Сценарии команды" subtitle="Повторяемые инструкции и планы работы федерации и тренеров"/><Feedback state={list}/>{(staff||coach)&&<ResourceForm title="Добавить сценарий" path="/regional/scenarios" done={list.reload} fields={[text('title','Название'),text('description','Для кого и какой результат','textarea'),text('steps','Шаги выполнения','textarea')]}/>}<Items rows={list.data} render={r=><><h2 className="font-semibold">{r.title}</h2><p className="my-3">{r.description}</p><p className="whitespace-pre-wrap">{r.steps}</p></>}/></>;
+}
+`);
+fs.mkdirSync('apps/web/src/app/(cabinet)/team-scenarios',{recursive:true});fs.writeFileSync('apps/web/src/app/(cabinet)/team-scenarios/page.tsx',`import RegionalWorkspace from '@/features/regional/workspace';\nexport default function Page(){return <RegionalWorkspace section="scenarios"/>;}\n`);
+edit('apps/web/src/lib/nav.ts',s=>s.replace('for(const role of Object.keys(NAV)) NAV[role].push(',"for(const role of Object.keys(NAV)) NAV[role].push({href:'/team-scenarios',label:'Сценарии команды',icon:ClipboardList});\nfor(const role of Object.keys(NAV)) NAV[role].push("));

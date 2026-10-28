@@ -23,6 +23,7 @@ export function PublicHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const links = [
+  ["/public/guide", "С чего начать"],
     ["/", "Главная"],
     ["/public/calendar", "Соревнования"],
     ["/public/ratings", "Рейтинг"],

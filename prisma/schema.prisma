@@ -115,6 +115,7 @@ enum ConsentSubjectType {
 }
 
 model User {
+  regionalRequests RegionalRequest[]
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String
@@ -227,6 +228,9 @@ model Consent {
 }
 
 model Organization {
+  license String?
+  programs String?
+  trainingGroups TrainingGroup[]
   id           String             @id @default(uuid())
   name         String
   type         OrganizationType
@@ -277,6 +281,11 @@ model CompetitionType {
 }
 
 model Athlete {
+  sex String @default("UNKNOWN")
+  regionalId String @unique @default(uuid())
+  trainingMembers TrainingMember[]
+  assessments Assessment[]
+  regionalRequests RegionalRequest[]
   id              String        @id @default(uuid())
   userId          String?       @unique
   lastName        String
@@ -350,6 +359,7 @@ model Disqualification {
 }
 
 model Coach {
+  trainingGroups TrainingGroup[]
   id             String        @id @default(uuid())
   userId         String        @unique
   lastName       String
@@ -787,4 +797,258 @@ model ParticipationCertificate {
   issuedBy           User     @relation(fields: [issuedById], references: [id])
 
   @@index([athleteId])
+}
+
+model TrainingGroup {
+  disciplineId String
+  id String @id @default(uuid())
+  name String
+  organizationId String
+  coachId String
+  stage String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  coach Coach @relation(fields: [coachId], references: [id])
+  members TrainingMember[]
+  lessons TrainingLesson[]
+  createdAt DateTime @default(now())
+}
+
+model TrainingMember {
+  joinedAt DateTime @default(now())
+  endedAt DateTime?
+  id String @id @default(uuid())
+  groupId String
+  athleteId String
+  group TrainingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  athlete Athlete @relation(fields: [athleteId], references: [id])
+  attendance TrainingAttendance[]
+  @@unique([groupId, athleteId])
+}
+
+model TrainingLesson {
+  format String @default("IN_PERSON")
+  evidenceUrl String
+  id String @id @default(uuid())
+  groupId String
+  startsAt DateTime
+  topic String
+  minutes Int
+  group TrainingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  attendance TrainingAttendance[]
+  @@index([groupId, startsAt])
+}
+
+model TrainingAttendance {
+  id String @id @default(uuid())
+  lessonId String
+  memberId String
+  present Boolean
+  lesson TrainingLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  member TrainingMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  @@unique([lessonId, memberId])
+}
+
+model TrainingStandard {
+  disciplineId String
+  sex String
+  minAge Int @default(0)
+  maxAge Int @default(100)
+  active Boolean @default(true)
+  id String @id @default(uuid())
+  title String
+  stage String
+  unit String
+  threshold Float
+  comparison String
+  source String
+  assessments Assessment[]
+  createdAt DateTime @default(now())
+}
+
+model Assessment {
+  thresholdSnapshot Float
+  comparisonSnapshot String
+  id String @id @default(uuid())
+  athleteId String
+  standardId String
+  value Float
+  passed Boolean
+  assessedAt DateTime
+  assessorId String
+  athlete Athlete @relation(fields: [athleteId], references: [id])
+  standard TrainingStandard @relation(fields: [standardId], references: [id])
+  @@index([athleteId, assessedAt])
+}
+
+model AwardProgram {
+  id String @id @default(uuid())
+  title String
+  season Int
+  criteria String
+  source String
+  closesAt DateTime
+  requests RegionalRequest[]
+}
+
+enum RegionalRequestKind {
+  APPEAL
+  VIOLATION
+  AWARD
+}
+
+enum RegionalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model RegionalRequest {
+  competitionId String?
+  evidenceUrls String[]
+  history Json @default("[]")
+  id String @id @default(uuid())
+  kind RegionalRequestKind
+  title String
+  description String
+  athleteId String?
+  programId String?
+  submittedById String
+  status RegionalRequestStatus @default(PENDING)
+  decision String?
+  reviewedById String?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  athlete Athlete? @relation(fields: [athleteId], references: [id])
+  program AwardProgram? @relation(fields: [programId], references: [id])
+  submittedBy User @relation(fields: [submittedById], references: [id])
+  @@index([submittedById, createdAt])
+  @@index([kind, status])
+}
+
+model TeamScenario {
+  id String @id @default(uuid())
+  title String
+  description String
+  steps String
+  createdById String
+  createdAt DateTime @default(now())
+}
+
+model ExternalMapping {
+  id String @id @default(uuid())
+  system String
+  externalId String
+  regionalId String
+  updatedAt DateTime @updatedAt
+  @@unique([system, externalId])
+  @@unique([system, regionalId])
+}
+
+model TrainingTransfer {
+  id String @id @default(uuid())
+  athleteId String
+  fromGroupId String?
+  toGroupId String
+  approvedById String
+  requirements Json
+  createdAt DateTime @default(now())
+}
+
+model DevelopmentEvidence {
+  id String @id @default(uuid())
+  year Int
+  indicator String
+  title String
+  url String
+  createdById String
+  createdAt DateTime @default(now())
+}
+
+model AwardRule {
+  id String @id @default(uuid())
+  band RatingBand
+  place Int
+  amount Decimal @db.Decimal(12,2)
+  source String
+  minParticipants Int @default(10)
+  active Boolean @default(true)
+  @@unique([band, place])
+}
+
+model AwardPetition {
+  id String @id @default(uuid())
+  year Int
+  status String @default("PREPARED")
+  candidates Json
+  history Json
+  createdById String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OidcClient {
+  id String @id @default(uuid())
+  name String
+  redirectUri String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+model OidcGrant {
+  id String @id @default(uuid())
+  codeHash String @unique
+  userId String
+  sessionId String
+  clientId String
+  redirectUri String
+  challenge String
+  nonce String
+  scope String
+  expiresAt DateTime
+  usedAt DateTime?
+}
+model OidcAccessToken {
+  id String @id @default(uuid())
+  tokenHash String @unique
+  userId String
+  clientId String
+  sessionId String
+  scope String
+  expiresAt DateTime
+}
+model OidcSigningKey {
+  id String @id
+  privateKey String
+  publicKey Json
+}
+model IntegrationToken {
+  id String @id @default(uuid())
+  name String
+  tokenHash String @unique
+  scopes String[]
+  competitionId String?
+  ownerId String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+}
+model WebhookSubscription {
+  id String @id @default(uuid())
+  url String
+  secret String
+  events String[]
+  active Boolean @default(true)
+  deliveries WebhookDelivery[]
+}
+model WebhookDelivery {
+  id String @id @default(uuid())
+  subscriptionId String
+  auditId String
+  event String
+  payload Json
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  deliveredAt DateTime?
+  lastError String?
+  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id])
+  @@unique([subscriptionId, auditId])
 }

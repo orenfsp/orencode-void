@@ -83,6 +83,17 @@ export const NAV: Record<
   ],
 };
 
+const extras: Record<string, Array<{href:string;label:string;icon:typeof Users}>> = {
+  FEDERATION: [{href:'/training',label:'Спортивная подготовка',icon:Users},{href:'/standards',label:'Нормативы и аттестация',icon:Medal},{href:'/appeals',label:'Апелляции и нарушения',icon:Scale},{href:'/governor-awards',label:'Премии Губернатора',icon:Award},{href:'/integrations',label:'ФСП ID и интеграции',icon:Shield},{href:'/judging-documents',label:'Документы судей',icon:FileText},{href:'/journey',label:'Путь спортсмена',icon:Flag}],
+  COACH: [{href:'/training',label:'Учебные группы',icon:Users},{href:'/standards',label:'Нормативы и аттестация',icon:Medal},{href:'/appeals',label:'Апелляции',icon:Scale},{href:'/journey',label:'Путь спортсмена',icon:Flag}],
+  ATHLETE: [{href:'/standards',label:'Мои нормативы',icon:Medal},{href:'/appeals',label:'Апелляции',icon:Scale},{href:'/journey',label:'Мой спортивный путь',icon:Flag}],
+  JUDGE: [{href:'/appeals',label:'Нарушения',icon:Scale},{href:'/judging-documents',label:'Документы судьи',icon:FileText}],
+  MINISTRY: [{href:'/national-team',label:'Сборная региона',icon:Flag},{href:'/governor-awards',label:'Премии',icon:Award},{href:'/judging-documents',label:'Документы судей',icon:FileText}],
+};
+for(const [role,items] of Object.entries(extras)) NAV[role].push(...items);
+for(const role of Object.keys(NAV)) NAV[role].push({href:'/team-scenarios',label:'Сценарии команды',icon:ClipboardList});
+for(const role of Object.keys(NAV)) NAV[role].push({href:'/public/guide',label:'Справочник и навигатор',icon:BookOpen});
+
 export const ROLE_LABEL: Record<string, string> = {
   FEDERATION: "Федерация",
   ATHLETE: "Спортсмен",

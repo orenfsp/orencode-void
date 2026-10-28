@@ -1,3 +1,4 @@
+import { RegionalModule } from './regional/regional.module';
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_FILTER } from "@nestjs/core";
@@ -23,6 +24,7 @@ import { UsersModule } from "./users/users.module";
       envFilePath: [".env", "../../.env"],
     }),
     CommonModule,
+    RegionalModule,
     AuthModule,
     UsersModule,
     CatalogsModule,

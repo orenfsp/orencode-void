@@ -153,6 +153,13 @@ export class DeadlineService implements OnModuleInit, OnModuleDestroy {
         result.judgeCategories += 1;
       }
 
+      if (now.getMonth() === 0) {
+        const staff = await this.prisma.user.findMany({where:{isActive:true,roles:{some:{role:{code:'FEDERATION'}}}},select:{id:true}});
+        for (const user of staff) {
+          const key = 'governor-awards:' + (now.getFullYear()-1);
+          if (!await this.notifiedToday(user.id,'AWARD_DEADLINE',key)) await this.notifications.notify({userId:user.id,type:'AWARD_DEADLINE',title:'Премии Губернатора: срок подачи',body:'Подготовьте и направьте ходатайства за предыдущий год до 1 февраля.',payload:{key}});
+        }
+      }
       return result;
     } catch (error) {
       this.logger.warn(

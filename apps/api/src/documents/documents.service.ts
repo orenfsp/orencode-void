@@ -402,7 +402,7 @@ export class DocumentsService {
     return candidates.find((candidate) => existsSync(candidate));
   }
 
-  private pdf(draw: (doc: PDFKit.PDFDocument) => void, filename: string) {
+  pdf(draw: (doc: PDFKit.PDFDocument) => void, filename: string) {
     return new Promise<{ buffer: Buffer; filename: string; mime: string }>(
       (resolve, reject) => {
         const doc = new PDFDocument({ margin: 48 });

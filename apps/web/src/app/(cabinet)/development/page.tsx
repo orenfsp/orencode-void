@@ -1,5 +1,6 @@
 "use client";
 
+import { DevelopmentDetails } from '@/features/regional/development';
 import { Card, PageTitle, Skeleton, StatCard } from "@/components/ui";
 import { useApi } from "@/hooks/use-api";
 import { DataState } from "@/components/data-state";
@@ -51,6 +52,7 @@ export default function DevelopmentPage() {
         />
       </div>
 
+      <DevelopmentDetails />
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="mb-1 font-medium">Динамика численности</h2>

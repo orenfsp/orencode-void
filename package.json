@@ -22,7 +22,9 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "db:setup": "prisma migrate deploy && tsx prisma/seed.ts",
     "start": "node scripts/start.mjs",
-    "compact": "node scripts/compact.mjs"
+    "compact": "node scripts/compact.mjs",
+    "demo:regional": "tsx prisma/seed-regional.ts",
+    "test:regional": "npm run build:shared && npm run build -w @fsp/api && node scripts/regional-integration.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

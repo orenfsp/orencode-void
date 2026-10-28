@@ -1,4 +1,5 @@
 "use client";
+import { useUser } from '@/components/shell';
 import { useState } from "react";
 import {
   Button,
@@ -33,6 +34,7 @@ type Team = {
   history: Array<{ id: string; action: string; createdAt: string }>;
 };
 export default function NationalTeamPage() {
+  const canEdit = useUser()?.activeRole === "FEDERATION";
   const [season, setSeason] = useState(new Date().getFullYear());
   const [selected, setSelected] = useState("");
   const [open, setOpen] = useState(false);
@@ -56,6 +58,7 @@ export default function NationalTeamPage() {
   const groups = useApi<Array<{ id: string; name: string }>>("/age-groups");
   const athletes = useApi<Person[]>("/athletes/directory");
   async function add(athleteId: string, source: string, note?: string) {
+    if (!canEdit) return;
     if (!team) return;
     setBusy(true);
     try {
@@ -89,7 +92,7 @@ export default function NationalTeamPage() {
           title="Сборная региона"
           subtitle="Решение об отборе принимает федерация. Возрастная группа проверяется на 31 декабря сезона."
         />
-        <Button className="h-fit" onClick={() => setOpen(true)}>
+        <Button disabled={!canEdit} className="h-fit" onClick={() => setOpen(true)}>
           Создать состав
         </Button>
       </div>
@@ -137,7 +140,7 @@ export default function NationalTeamPage() {
                   </span>
                   <Button
                     variant="ghost"
-                    disabled={busy}
+                    disabled={busy || !canEdit}
                     onClick={async () => {
                       setBusy(true);
                       try {
@@ -170,7 +173,7 @@ export default function NationalTeamPage() {
               </Button>
             </div>
           </Card>
-          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          {canEdit && <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <Card>
               <h2 className="mb-4 font-semibold">Рейтинговый отбор</h2>
               <DataState {...ratings} retry={ratings.reload} />
@@ -227,7 +230,7 @@ export default function NationalTeamPage() {
                 <Field label="Основание отбора">
                   <Input name="note" required />
                 </Field>
-                <Button disabled={busy} type="submit">
+                <Button disabled={busy || !canEdit} type="submit">
                   Добавить в состав
                 </Button>
               </form>
@@ -237,6 +240,7 @@ export default function NationalTeamPage() {
               </p>
             </Card>
           </div>
+          }
           <details className="mt-5 rounded-xl border border-[#e1eaf5] bg-white p-5">
             <summary className="cursor-pointer text-sm font-medium">
               История изменения состава
@@ -304,7 +308,7 @@ export default function NationalTeamPage() {
                 ))}
               </Select>
             </Field>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || !canEdit}>
               Создать
             </Button>
           </form>

@@ -34,6 +34,7 @@ export class RatingsService {
       const byAthlete = new Map<string, typeof results>();
       const excludedIds: string[] = [];
       for (const result of results) {
+        if ((result.extraMetrics as {technicalLoss?:boolean}|null)?.technicalLoss) continue;
         const list = byAthlete.get(result.athleteId) ?? [];
         list.push(result);
         byAthlete.set(result.athleteId, list);

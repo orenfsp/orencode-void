@@ -664,10 +664,11 @@ export class CompetitionsService {
     for (const item of items) {
       scores.set(item.athleteId, item.score);
     }
+    const technicalLossIds = new Set(existing.filter(r => (r.extraMetrics as {technicalLoss?:boolean}|null)?.technicalLoss).map(r => r.athleteId));
     // Места пересчитываются по всему протоколу, чтобы изменение одного
     // результата не оставляло устаревшие места у остальных участников.
     const places = assignPlaces(
-      [...scores.entries()].map(([id, score]) => ({ id, score })),
+      [...scores.entries()].filter(([id]) => !technicalLossIds.has(id)).map(([id, score]) => ({ id, score })),
     );
     const results = await this.prisma.$transaction(async (tx) => {
       const saved = [];
@@ -687,14 +688,14 @@ export class CompetitionsService {
             competitionId,
             athleteId: item.athleteId,
             applicationId: application.id,
-            place: places.get(item.athleteId) ?? 0,
+            place: places.get(item.athleteId) ?? scores.size + 1,
             score: item.score,
             extraMetrics: item.extraMetrics,
             createdById: user.id,
             updatedById: user.id,
           },
           update: {
-            place: places.get(item.athleteId) ?? 0,
+            place: places.get(item.athleteId) ?? scores.size + 1,
             score: item.score,
             extraMetrics: item.extraMetrics,
             updatedById: user.id,
@@ -708,7 +709,7 @@ export class CompetitionsService {
         }
         await tx.competitionResult.update({
           where: { id: item.id },
-          data: { place: places.get(item.athleteId) ?? item.place },
+          data: { place: places.get(item.athleteId) ?? scores.size + 1 },
         });
       }
       if (competition.protocol?.status === "PUBLISHED") {

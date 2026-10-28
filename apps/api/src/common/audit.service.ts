@@ -14,7 +14,8 @@ export class AuditService {
     changes?: Prisma.InputJsonValue;
     context?: Prisma.InputJsonValue;
   }) {
-    await this.prisma.auditLog.create({
+    await this.prisma.$transaction(async tx => {
+    const entry = await tx.auditLog.create({
       data: {
         userId: params.userId ?? null,
         action: params.action,
@@ -23,6 +24,11 @@ export class AuditService {
         changes: params.changes,
         context: params.context,
       },
+    });
+    if (['COMPETITION_PUBLISH','APPLICATION_REVIEW','PROTOCOL_PUBLISH'].includes(params.action) && (params.action !== 'APPLICATION_REVIEW' || (params.changes as {status?:string})?.status === 'APPROVED')) {
+      const subscriptions = await tx.webhookSubscription.findMany({where:{active:true,events:{has:params.action}}});
+      await tx.webhookDelivery.createMany({data:subscriptions.map(s=>({subscriptionId:s.id,auditId:entry.id,event:params.action,payload:{entityType:params.entityType,entityId:params.entityId,occurredAt:entry.createdAt.toISOString()}}))});
+    }
     });
   }
 }
